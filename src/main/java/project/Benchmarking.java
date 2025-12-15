@@ -1,5 +1,7 @@
 package project;
 
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -18,10 +20,12 @@ import java.util.concurrent.TimeUnit;
 @Warmup(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 10, time = 10, timeUnit = TimeUnit.SECONDS)
 @Fork(2)
-
 public class Benchmarking {
 
     private IMatrix matrix;
+
+    private HazelcastInstance hz;
+
     private final OperatingSystemMXBean os;
     private final SystemInfo si;
     private final Rnd rnd;
@@ -39,7 +43,7 @@ public class Benchmarking {
         GlobalMemory memory = si.getHardware().getMemory();
 
         var proc = si.getOperatingSystem().getCurrentProcess();
-        initUsedMb  = (proc == null ? 0L : proc.getResidentSetSize() / MB);
+        initUsedMb = (proc == null ? 0L : proc.getResidentSetSize() / MB);
         long totalMb = memory.getTotal() / MB;
 
         System.out.printf(
@@ -52,23 +56,35 @@ public class Benchmarking {
     @Param({"512", "1024", "2048", "4096", "8192"})
     int size;
 
-        @Param({"DISTRIBUTION"})
+    @Param({"DISTRIBUTION"})
     MatrixType type;
-
 
     @Setup(Level.Trial)
     public void setupTrial() {
+        // Hazelcast einmal pro Trial starten
+        hz = Hazelcast.newHazelcastInstance();
+
         switch (type) {
             case DISTRIBUTION:
-                matrix = new Distribution(new Rnd(), size);
+                matrix = new Distribution(hz, rnd, size);
                 break;
+            default:
+                throw new IllegalStateException("Unsupported type: " + type);
+        }
+    }
+
+    @TearDown(Level.Trial)
+    public void tearDownTrial() {
+        if (hz != null) {
+            hz.shutdown();
+            hz = null;
         }
     }
 
     @Setup(Level.Iteration)
     public void setupIteration() {
         realBefore = System.nanoTime();
-        cpuBefore  = os.getProcessCpuTime();
+        cpuBefore = os.getProcessCpuTime();
     }
 
     @Benchmark
@@ -80,17 +96,12 @@ public class Benchmarking {
 
     @TearDown(Level.Iteration)
     public void tearDownInvocation(ExtraMetrics x) {
-
         var proc = si.getOperatingSystem().getCurrentProcess();
 
-        long cpuAfter  = os.getProcessCpuTime();
+        long cpuAfter = os.getProcessCpuTime();
         long realAfter = System.nanoTime();
 
         x.RAM = (proc == null ? 0L : (proc.getResidentSetSize() / MB) - initUsedMb);
-        x.CPU = (double)(cpuAfter - cpuBefore) / (double)(realAfter - realBefore);
+        x.CPU = (double) (cpuAfter - cpuBefore) / (double) (realAfter - realBefore);
     }
 }
-
-// cd IdeaProjects/Individual-Assignment-Marco-4
-// mvn -q -DskipTests package
-// caffeinate java -jar target/benchmarks.jar project.Benchmarking.multiply -rf csv -rff results.csv
