@@ -52,13 +52,16 @@ public class Benchmarking {
     @Param({"512", "1024", "2048", "4096", "8192"})
     int size;
 
-    @Param({})
+        @Param({"DISTRIBUTION"})
     MatrixType type;
 
 
     @Setup(Level.Trial)
     public void setupTrial() {
         switch (type) {
+            case DISTRIBUTION:
+                matrix = new Distribution(Rnd, size);
+                break;
         }
     }
 
