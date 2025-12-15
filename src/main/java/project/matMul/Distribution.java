@@ -2,7 +2,7 @@ package project.matMul;
 
 import java.util.Arrays;
 
-public class Distribution {
+public class Distribution implements IMatrix{
 
     private final int size;
 
