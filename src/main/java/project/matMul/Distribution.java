@@ -1,5 +1,7 @@
 package project.matMul;
 
+import project.Rnd;
+
 import java.util.Arrays;
 
 public class Distribution implements IMatrix{

@@ -60,7 +60,7 @@ public class Benchmarking {
     public void setupTrial() {
         switch (type) {
             case DISTRIBUTION:
-                matrix = new Distribution(Rnd, size);
+                matrix = new Distribution(new Rnd(), size);
                 break;
         }
     }
