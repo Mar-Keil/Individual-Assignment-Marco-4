@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.example</groupId>
-  <artifactId>Individual-Assignment-Marco-4</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <groupId>project</groupId>
+  <artifactId>matmul-hazelcast-jmh</artifactId>
+  <version>1.0.0</version>
   <build>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>${maven.compiler.plugin.version}</version>
+        <version>3.13.0</version>
         <configuration>
-          <source>${maven.compiler.source}</source>
-          <target>${maven.compiler.target}</target>
+          <release>${maven.compiler.release}</release>
           <annotationProcessorPaths>
             <path>
               <groupId>org.openjdk.jmh</groupId>
@@ -22,8 +21,20 @@
         </configuration>
       </plugin>
       <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+        <configuration>
+          <skipTests>true</skipTests>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.5.0</version>
+      </plugin>
+      <plugin>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>${maven.shade.plugin.version}</version>
+        <version>3.6.0</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -33,21 +44,10 @@
             <configuration>
               <finalName>benchmarks</finalName>
               <transformers>
-                <transformer />
                 <transformer>
                   <mainClass>org.openjdk.jmh.Main</mainClass>
                 </transformer>
               </transformers>
-              <filters>
-                <filter>
-                  <artifact>*:*</artifact>
-                  <excludes>
-                    <exclude>META-INF/*.SF</exclude>
-                    <exclude>META-INF/*.DSA</exclude>
-                    <exclude>META-INF/*.RSA</exclude>
-                  </excludes>
-                </filter>
-              </filters>
             </configuration>
           </execution>
         </executions>
@@ -63,14 +63,10 @@
     </dependency>
   </dependencies>
   <properties>
+    <maven.compiler.release>21</maven.compiler.release>
     <jmh.version>1.37</jmh.version>
-    <maven.compiler.target>21</maven.compiler.target>
-    <hazelcast.version>5.6.0</hazelcast.version>
-    <slf4j.version>2.0.17</slf4j.version>
-    <maven.compiler.source>21</maven.compiler.source>
-    <maven.compiler.plugin.version>3.14.1</maven.compiler.plugin.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <oshi.version>6.9.1</oshi.version>
-    <maven.shade.plugin.version>3.6.1</maven.shade.plugin.version>
+    <oshi.version>6.6.5</oshi.version>
+    <hazelcast.version>5.5.0</hazelcast.version>
   </properties>
 </project>
