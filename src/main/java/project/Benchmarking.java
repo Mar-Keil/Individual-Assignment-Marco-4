@@ -1,11 +1,13 @@
 package project;
 
-import com.hazelcast.core.Hazelcast;
+import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.core.HazelcastInstance;
+
+import com.sun.management.OperatingSystemMXBean;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-import com.sun.management.OperatingSystemMXBean;
 import oshi.SystemInfo;
 import oshi.hardware.GlobalMemory;
 
@@ -14,16 +16,15 @@ import project.matMul.*;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.TimeUnit;
 
-@State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.SECONDS)
 @Warmup(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 10, time = 10, timeUnit = TimeUnit.SECONDS)
 @Fork(2)
+@State(Scope.Benchmark)
 public class Benchmarking {
 
     private IMatrix matrix;
-
     private HazelcastInstance hz;
 
     private final OperatingSystemMXBean os;
@@ -40,9 +41,10 @@ public class Benchmarking {
         this.rnd = new Rnd();
         this.os = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
         this.si = new SystemInfo();
-        GlobalMemory memory = si.getHardware().getMemory();
 
+        GlobalMemory memory = si.getHardware().getMemory();
         var proc = si.getOperatingSystem().getCurrentProcess();
+
         initUsedMb = (proc == null ? 0L : proc.getResidentSetSize() / MB);
         long totalMb = memory.getTotal() / MB;
 
@@ -61,8 +63,15 @@ public class Benchmarking {
 
     @Setup(Level.Trial)
     public void setupTrial() {
-        // Hazelcast einmal pro Trial starten
-        hz = Hazelcast.newHazelcastInstance();
+        ClientConfig cfg = new ClientConfig();
+        cfg.setClusterName("matmul-cluster");
+        cfg.getNetworkConfig().addAddress(
+                "127.0.0.1:5701",
+                "127.0.0.1:5702",
+                "127.0.0.1:5703"
+        );
+
+        hz = HazelcastClient.newHazelcastClient(cfg);
 
         switch (type) {
             case DISTRIBUTION:
@@ -90,12 +99,12 @@ public class Benchmarking {
     @Benchmark
     public void multiply(Blackhole bh) {
         matrix.multiply();
-        matrix.clearC();
         bh.consume(matrix.peek());
+        matrix.clearC();
     }
 
     @TearDown(Level.Iteration)
-    public void tearDownInvocation(ExtraMetrics x) {
+    public void tearDownIteration(ExtraMetrics x) {
         var proc = si.getOperatingSystem().getCurrentProcess();
 
         long cpuAfter = os.getProcessCpuTime();
@@ -103,5 +112,12 @@ public class Benchmarking {
 
         x.RAM = (proc == null ? 0L : (proc.getResidentSetSize() / MB) - initUsedMb);
         x.CPU = (double) (cpuAfter - cpuBefore) / (double) (realAfter - realBefore);
+    }
+
+    @AuxCounters(AuxCounters.Type.EVENTS)
+    @State(Scope.Thread)
+    public static class ExtraMetrics {
+        public long RAM;
+        public double CPU;
     }
 }
