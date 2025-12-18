@@ -55,7 +55,7 @@ public class Benchmarking {
         );
     }
 
-    @Param({"512", "1024", "2048", "4096", "8192"})
+    @Param({/*"512", "1024",*/ "2048", "4096"/*, "8192"*/})
     int size;
 
     @Param({"DISTRIBUTION"})
@@ -79,14 +79,6 @@ public class Benchmarking {
                 break;
             default:
                 throw new IllegalStateException("Unsupported type: " + type);
-        }
-    }
-
-    @TearDown(Level.Trial)
-    public void tearDownTrial() {
-        if (hz != null) {
-            hz.shutdown();
-            hz = null;
         }
     }
 
@@ -114,10 +106,24 @@ public class Benchmarking {
         x.CPU = (double) (cpuAfter - cpuBefore) / (double) (realAfter - realBefore);
     }
 
-    @AuxCounters(AuxCounters.Type.EVENTS)
-    @State(Scope.Thread)
-    public static class ExtraMetrics {
-        public long RAM;
-        public double CPU;
+
+    @TearDown(Level.Trial)
+    public void tearDownTrial() {
+        if (hz != null) {
+            hz.shutdown();
+            hz = null;
+        }
     }
+    /*
+    cd IdeaProjects/Individual-Assignment-Marco-4
+
+    mvn -q -DskipTests exec:java -Dexec.mainClass=project.HazelcastMemberMain -Dexec.args="5701 matmul-cluster"
+
+    mvn -q -DskipTests exec:java -Dexec.mainClass=project.HazelcastMemberMain -Dexec.args="5702 matmul-cluster"
+
+    mvn -q -DskipTests exec:java -Dexec.mainClass=project.HazelcastMemberMain -Dexec.args="5703 matmul-cluster"
+
+    mvn -DskipTests clean package
+    caffeinate -dimsu java -jar target/benchmarks.jar project.Benchmarking -rf csv -rff results.csv
+     */
 }
